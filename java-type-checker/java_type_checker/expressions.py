@@ -76,6 +76,9 @@ class MethodCall(Expression):
     def check_types(self):
         receiver = self.receiver
         classtype = receiver.declared_type
+        #Check if classtpye is primitive:
+        if classtype.is_subtype_of(Type.boolean) or classtype.is_subtype_of(Type.int) or classtype.is_subtype_of(Type.double):
+            raise JavaTypeError("Type {0} does not have methods".format(classtype.name))
         method = classtype.method_named(self.method_name)
         argsExpected = method.argument_types #not certain what type this is.
         args = self.args #But these are definitely expressions
@@ -87,6 +90,7 @@ class MethodCall(Expression):
         for i in range(len(args)):
             typeExp = argsExpected[i]
             expressionGot = args[i]
+            expressionGot.check_types()
             typeGot = expressionGot.static_type()
             if not typeGot.is_subtype_of(typeExp):
                 raise JavaTypeError("{0}.{1}() expects arguments of type {2}, but got {3}".format(classtype.name, self.method_name, names(argsExpected), names(typesGot)))
@@ -105,17 +109,21 @@ class ConstructorCall(Expression):
 
     def check_types(self):
         classType = self.static_type()
+        if classType.is_subtype_of(Type.boolean) or classType.is_subtype_of(Type.int) or classType.is_subtype_of(Type.double):
+            raise JavaTypeError("Type {0} is not instantiable".format(classType.name))
         argsGot = self.args
         argsExp = classType.constructor.argument_types
+        typesGot = []
+        for arg in argsGot:
+            typesGot.append(arg.static_type())
         if(len(argsExp) != len(argsGot)):
-            raise JavaTypeError("Wrong number of arguments for Rectangle constructor: expected 2, got 1")
-        #todo: make this a proper error message for expected X and Y, and correct.
+            raise JavaTypeError("Wrong number of arguments for {0} constructor: expected {1}, got {2}".format(classType.name, len(argsExp), len(argsGot)))
         for i in range(len(argsGot)):
             typeExp = argsExp[i]
             typeGot = argsGot[i]
             if typeExp != typeGot:
-                raise JavaTypeError("Rectangle constructor expects arguments of type (Point, Size), but got (Point, boolean)")
-
+                raise JavaTypeError("{0} constructor expects arguments of type {1}, but got {2}".format(classType.name, names(argsExp), names(typesGot)))
+        return
 class JavaTypeError(Exception):
     """ Indicates a compile-time type error in an expression.
     """

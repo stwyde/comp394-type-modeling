@@ -91,10 +91,9 @@ class NullType(ClassOrInterface):
         raise NoSuchMethod("{0} has no method named {1}".format(self.name, name))
 
     def is_subtype_of(self, other):
+        #primitives can't be null
         return True
 
-    def is_supertype_of(self, other):
-        return False
 
 
 
