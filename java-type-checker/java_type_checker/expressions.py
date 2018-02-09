@@ -31,6 +31,11 @@ class Variable(Expression):
         self.name = name                    #: The name of the variable
         self.declared_type = declared_type  #: The declared type of the variable (Type)
 
+    def static_type(self):
+        return self.declared_type
+
+    def check_types(self):
+        return
 
 class Literal(Expression):
     """ A literal value entered in the code, e.g. `5` in the expression `x + 5`.
@@ -39,11 +44,18 @@ class Literal(Expression):
         self.value = value  #: The literal value, as a string
         self.type = type    #: The type of the literal (Type)
 
+    def static_type(self):
+        return self.type
+
+    def check_types(self):
+        return
 
 class NullLiteral(Literal):
     def __init__(self):
         super().__init__("null", Type.null)
 
+    def static_type(self):
+        return Type.null
 
 class MethodCall(Expression):
     """
@@ -55,6 +67,28 @@ class MethodCall(Expression):
         self.method_name = method_name  #: The name of the method to call (String)
         self.args = args                #: The method arguments (list of Expressions)
 
+    def static_type(self):
+        var = self.receiver
+        classtype = var.declared_type
+        method = classtype.method_named(self.method_name)
+        return(method.return_type)
+
+    def check_types(self):
+        receiver = self.receiver
+        classtype = receiver.declared_type
+        method = classtype.method_named(self.method_name)
+        argsExpected = method.argument_types #not certain what type this is.
+        args = self.args #But these are definitely expressions
+        if(len(argsExpected) != len(args)):
+            raise JavaTypeError("Wrong number of arguments for {3}.{0}(): expected {1}, got {2}".format(self.method_name, len(argsExpected), len(args), classtype.name))
+
+        for i in range(len(args)):
+            typeExp = argsExpected[i]
+            expressionGot = args[i]
+            typeGot = expressionGot.static_type()
+            if not typeGot.is_subtype_of(typeExp):
+                raise JavaTypeError("Rectangle.setPosition() expects arguments of type (double, double), but got (double, boolean)")
+        return
 
 class ConstructorCall(Expression):
     """
@@ -64,6 +98,21 @@ class ConstructorCall(Expression):
         self.instantiated_type = instantiated_type  #: The type to instantiate (Type)
         self.args = args                            #: Constructor arguments (list of Expressions)
 
+    def static_type(self):
+        return self.instantiated_type
+
+    def check_types(self):
+        classType = self.static_type()
+        argsGot = self.args
+        argsExp = classType.constructor.argument_types
+        if(len(argsExp) != len(argsGot)):
+            raise JavaTypeError("Wrong number of arguments for Rectangle constructor: expected 2, got 1")
+        #todo: make this a proper error message for expected X and Y, and correct.
+        for i in range(len(argsGot)):
+            typeExp = argsExp[i]
+            typeGot = argsGot[i]
+            if typeExp != typeGot:
+                raise JavaTypeError("Rectangle constructor expects arguments of type (Point, Size), but got (Point, boolean)")
 
 class JavaTypeError(Exception):
     """ Indicates a compile-time type error in an expression.

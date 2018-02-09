@@ -12,7 +12,20 @@ class Type(object):
     def is_subtype_of(self, other):
         """ True if this type can be used where the other type is expected.
         """
-        return True  # TODO: implement
+        #Catch for self not in supertypes, modifies a copy of the direct_supertypes in case user didn't spec self in list
+        allSupers = [self]
+        prevSize = -1
+        currentSize = 1
+        while currentSize > prevSize:
+            prevSize = currentSize
+            for super in allSupers:
+                potentialNewSupers = super.direct_supertypes
+                for potentialSuper in potentialNewSupers:
+                    if potentialSuper not in allSupers:
+                        allSupers.append(potentialSuper)
+                        currentSize+=1
+        #Is this messy? yes it is. I'd rather use a set in this case but apparently returning arrays and then extending sets isn't viable
+        return(other in allSupers)
 
     def is_supertype_of(self, other):
         """ Convenience counterpart to is_subtype_of().
@@ -66,11 +79,25 @@ class ClassOrInterface(Type):
             raise NoSuchMethod("{0} has no method named {1}".format(self.name, name))
 
 
-class NullType(Type):
+class NullType(ClassOrInterface):
     """ The type of the value `null` in Java.
     """
     def __init__(self):
         super().__init__("null")
+        self.is_instantiable = False
+        self.methods = {}
+
+    def method_named(self, name):
+        raise NoSuchMethod("{0} has no method named {1}".format(self.name, name))
+
+    def is_subtype_of(self, other):
+        return True
+
+    def is_supertype_of(self, other):
+        return False
+
+
+
 
 
 class NoSuchMethod(Exception):
