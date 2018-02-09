@@ -79,15 +79,17 @@ class MethodCall(Expression):
         method = classtype.method_named(self.method_name)
         argsExpected = method.argument_types #not certain what type this is.
         args = self.args #But these are definitely expressions
+        typesGot = []
+        for arg in args:
+            typesGot.append(arg.static_type())
         if(len(argsExpected) != len(args)):
             raise JavaTypeError("Wrong number of arguments for {3}.{0}(): expected {1}, got {2}".format(self.method_name, len(argsExpected), len(args), classtype.name))
-
         for i in range(len(args)):
             typeExp = argsExpected[i]
             expressionGot = args[i]
             typeGot = expressionGot.static_type()
             if not typeGot.is_subtype_of(typeExp):
-                raise JavaTypeError("Rectangle.setPosition() expects arguments of type (double, double), but got (double, boolean)")
+                raise JavaTypeError("{0}.{1}() expects arguments of type {2}, but got {3}".format(classtype.name, self.method_name, names(argsExpected), names(typesGot)))
         return
 
 class ConstructorCall(Expression):
