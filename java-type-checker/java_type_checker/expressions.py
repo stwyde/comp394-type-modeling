@@ -86,6 +86,8 @@ class MethodCall(Expression):
 
         for arg in args:
             typesGot.append(arg.static_type())
+            arg.check_types()
+
 
         if(len(argsExpected) != len(args)):
             raise JavaTypeError("Wrong number of arguments for {3}.{0}(): expected {1}, got {2}".format(self.method_name, len(argsExpected), len(args), classtype.name))
@@ -106,8 +108,7 @@ class ConstructorCall(Expression):
     def __init__(self, instantiated_type, *args):
         self.instantiated_type = instantiated_type  #: The type to instantiate (Type)
         self.args = args                            #: Constructor arguments (list of Expressions)
-        if self.instantiated_type == Type.null:
-            raise JavaTypeError("Type null is not instantiable")
+
 
 
     def static_type(self):
@@ -115,6 +116,8 @@ class ConstructorCall(Expression):
 
     def check_types(self):
         classType = self.static_type()
+        if classType == Type.null:
+            raise JavaTypeError("Type null is not instantiable")
 
         if classType.is_subtype_of(Type.boolean) or classType.is_subtype_of(Type.int) or classType.is_subtype_of(Type.double):
             raise JavaTypeError("Type {0} is not instantiable".format(classType.name))
@@ -124,13 +127,15 @@ class ConstructorCall(Expression):
         typesGot = []
         for arg in argsGot:
             typesGot.append(arg.static_type())
+            arg.check_types()
+
         if(len(argsExp) != len(argsGot)):
             raise JavaTypeError("Wrong number of arguments for {0} constructor: expected {1}, got {2}".format(classType.name, len(argsExp), len(argsGot)))
         for i in range(len(argsGot)):
             typeExp = argsExp[i]
-            typeGot = argsGot[i].static_type
+            typeGot = argsGot[i].static_type()
             #second part checks for a weird edge case where Got (Point, Size) Expected (Point, Size) TODO: figure out why
-            if (not typeExp.is_subtype_of(typeGot)) and typesGot != argsExp:
+            if (not typeGot.is_subtype_of(typeExp)) and typesGot != argsExp:
                 raise JavaTypeError("{0} constructor expects arguments of type {1}, but got {2}".format(classType.name, names(argsExp), names(typesGot)))
         return
 
