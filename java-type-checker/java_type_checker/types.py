@@ -84,15 +84,16 @@ class NullType(ClassOrInterface):
     """
     def __init__(self):
         super().__init__("null")
-        self.name = "null"
         self.is_instantiable = False
         self.methods = {}
 
     def method_named(self, name):
-        raise NoSuchMethod("{0} has no method named {1}".format(self.name, name))
+        raise NoSuchMethod("Cannot invoke method {0}() on {1}".format(name, self.name))
 
     def is_subtype_of(self, other):
         #primitives can't be null
+        if(other.is_subtype_of(Type.boolean) or other.is_subtype_of(Type.int) or other.is_subtype_of(Type.double)):
+            return False
         return True
 
 

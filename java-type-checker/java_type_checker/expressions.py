@@ -53,6 +53,7 @@ class Literal(Expression):
 class NullLiteral(Literal):
     def __init__(self):
         super().__init__("null", Type.null)
+        self.declared_type = Type.null
 
     def static_type(self):
         return Type.null
@@ -85,14 +86,16 @@ class MethodCall(Expression):
 
         for arg in args:
             typesGot.append(arg.static_type())
+
         if(len(argsExpected) != len(args)):
             raise JavaTypeError("Wrong number of arguments for {3}.{0}(): expected {1}, got {2}".format(self.method_name, len(argsExpected), len(args), classtype.name))
+
         for i in range(len(args)):
             typeExp = argsExpected[i]
             expressionGot = args[i]
             expressionGot.check_types()
             typeGot = expressionGot.static_type()
-            if not typeGot.is_subtype_of(typeExp) and typesGot != argsExpected:
+            if (not typeGot.is_subtype_of(typeExp)) and typesGot != argsExpected:
                 raise JavaTypeError("{0}.{1}() expects arguments of type {2}, but got {3}".format(classtype.name, self.method_name, names(argsExpected), names(typesGot)))
         return
 
@@ -103,6 +106,9 @@ class ConstructorCall(Expression):
     def __init__(self, instantiated_type, *args):
         self.instantiated_type = instantiated_type  #: The type to instantiate (Type)
         self.args = args                            #: Constructor arguments (list of Expressions)
+        if self.instantiated_type == Type.null:
+            raise JavaTypeError("Type null is not instantiable")
+
 
     def static_type(self):
         return self.instantiated_type
