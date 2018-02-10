@@ -68,21 +68,21 @@ class MethodCall(Expression):
         self.args = args                #: The method arguments (list of Expressions)
 
     def static_type(self):
-        var = self.receiver
-        classtype = var.declared_type
+        classtype = self.receiver.declared_type
         method = classtype.method_named(self.method_name)
         return(method.return_type)
 
     def check_types(self):
-        receiver = self.receiver
-        classtype = receiver.declared_type
-        #Check if classtpye is primitive:
+        classtype = self.receiver.declared_type
+
         if classtype.is_subtype_of(Type.boolean) or classtype.is_subtype_of(Type.int) or classtype.is_subtype_of(Type.double):
             raise JavaTypeError("Type {0} does not have methods".format(classtype.name))
+
         method = classtype.method_named(self.method_name)
         argsExpected = method.argument_types #not certain what type this is.
         args = self.args #But these are definitely expressions
         typesGot = []
+
         for arg in args:
             typesGot.append(arg.static_type())
         if(len(argsExpected) != len(args)):
@@ -92,7 +92,7 @@ class MethodCall(Expression):
             expressionGot = args[i]
             expressionGot.check_types()
             typeGot = expressionGot.static_type()
-            if not typeGot.is_subtype_of(typeExp):
+            if not typeGot.is_subtype_of(typeExp) and typesGot != argsExpected:
                 raise JavaTypeError("{0}.{1}() expects arguments of type {2}, but got {3}".format(classtype.name, self.method_name, names(argsExpected), names(typesGot)))
         return
 
@@ -109,8 +109,10 @@ class ConstructorCall(Expression):
 
     def check_types(self):
         classType = self.static_type()
+
         if classType.is_subtype_of(Type.boolean) or classType.is_subtype_of(Type.int) or classType.is_subtype_of(Type.double):
             raise JavaTypeError("Type {0} is not instantiable".format(classType.name))
+
         argsGot = self.args
         argsExp = classType.constructor.argument_types
         typesGot = []
@@ -120,10 +122,12 @@ class ConstructorCall(Expression):
             raise JavaTypeError("Wrong number of arguments for {0} constructor: expected {1}, got {2}".format(classType.name, len(argsExp), len(argsGot)))
         for i in range(len(argsGot)):
             typeExp = argsExp[i]
-            typeGot = argsGot[i]
-            if typeExp != typeGot:
+            typeGot = argsGot[i].static_type
+            #second part checks for a weird edge case where Got (Point, Size) Expected (Point, Size) TODO: figure out why
+            if (not typeExp.is_subtype_of(typeGot)) and typesGot != argsExp:
                 raise JavaTypeError("{0} constructor expects arguments of type {1}, but got {2}".format(classType.name, names(argsExp), names(typesGot)))
         return
+
 class JavaTypeError(Exception):
     """ Indicates a compile-time type error in an expression.
     """

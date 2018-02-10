@@ -84,6 +84,7 @@ class NullType(ClassOrInterface):
     """
     def __init__(self):
         super().__init__("null")
+        self.name = "null"
         self.is_instantiable = False
         self.methods = {}
 
